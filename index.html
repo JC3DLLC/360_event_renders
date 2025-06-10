@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>360 Virtual Image Tour</title>
+
+    <!-- Photo Sphere Viewer CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/photo-sphere-viewer.min.css" />
+    
+    <!-- uevent is a required dependency for Photo Sphere Viewer v4 -->
+    <script src="https://cdn.jsdelivr.net/npm/uevent@2/browser.js"></script>
+    
+    <!-- three.js is a required dependency for Photo Sphere Viewer -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+    
+    <!-- Photo Sphere Viewer JS -->
+    <script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/photo-sphere-viewer.min.js"></script>
+    
+    <!-- Markers Plugin is not needed anymore but we'll keep the script tag in case you want to re-add them -->
+    <script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/plugins/markers.min.js"></script>
+
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Fallback background */
+        }
+
+        #viewer-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #viewer {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Style for the navigation dots in the navbar */
+        .psv-custom-button {
+            width: 20px !important;
+            height: 20px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+
+        .psv-custom-button.active .nav-dot {
+            background-color: white;
+            transform: scale(1.2);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="viewer-container">
+        <div id="viewer"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // --- 1. DEFINE YOUR TOUR IMAGES (SCENES) HERE ---
+            // Using your image URLs from the public GitHub repository.
+            const nodes = {
+                view1: {
+                    id: 'view1',
+                    panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v02_0000.jpg',
+                    name: 'View 1',
+                },
+                view2: {
+                    id: 'view2',
+                    panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v01_0001.jpg',
+                    name: 'View 2',
+                },
+                view3: {
+                    id: 'view3',
+                    panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v01_0002.jpg',
+                    name: 'View 3',
+                },
+                 view4: {
+                    id: 'view4',
+                    panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v01_0003.jpg',
+                    name: 'View 4',
+                },
+                 view5: {
+                    id: 'view5',
+                    panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v01_0004.jpg',
+                    name: 'View 5',
+                },
+                 view6: {
+                    id: 'view6',
+                    panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v01_0005.jpg',
+                    name: 'View 6',
+                },
+            };
+            
+            let currentNodeId = 'view1'; // The starting node
+            
+            // --- 2. INITIALIZE THE VIEWER ---
+            const viewer = new PhotoSphereViewer.Viewer({
+                container: document.querySelector('#viewer'),
+                loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading%20Image...',
+                touchmoveTwoFingers: true,
+                mousewheelCtrlKey: true,
+                navbar: [], // Navbar is generated dynamically
+            });
+
+            // --- 3. CORE FUNCTIONS ---
+
+            /**
+             * Rebuilds the navbar with simple dots for navigation.
+             * @param {string} activeNodeId The currently visible node.
+             */
+            function updateNavbar(activeNodeId) {
+                const navButtons = [];
+
+                // Create a dot button for each node
+                for (const nodeId in nodes) {
+                    const buttonClasses = ['nav-dot-button'];
+                    if (nodeId === activeNodeId) {
+                        buttonClasses.push('active');
+                    }
+
+                    const button = {
+                        id: `nav-dot-to-${nodeId}`,
+                        content: `<div class="nav-dot"></div>`,
+                        title: `Go to ${nodes[nodeId].name}`,
+                        className: buttonClasses.join(' '), 
+                        onClick: () => setNode(nodeId),
+                    };
+                    navButtons.push(button);
+                }
+
+                // Define the full navbar configuration
+                const newNavbar = [
+                    'zoom',
+                    'caption',
+                    ...navButtons, // Add the dynamic navigation dots
+                    'fullscreen', // This button will work once the file is hosted on a live website.
+                ];
+                
+                // Update the viewer's navbar
+                viewer.setOption('navbar', newNavbar);
+            }
+            
+            function setNode(nodeId) {
+                const node = nodes[nodeId];
+                if (!node) return;
+                
+                currentNodeId = nodeId;
+
+                viewer.setPanorama(node.panorama, { 
+                    showLoader: true,
+                    caption: node.name 
+                })
+                .then(() => {
+                    // Update the navbar to highlight the correct dot
+                    updateNavbar(nodeId);
+                })
+                .catch((error) => {
+                    console.error(`Failed to load panorama for node ${nodeId}:`, error);
+                    viewer.showError(`Oops! We could not load the image for "${node.name}". Please check the URL.`);
+                });
+            }
+
+            // --- 4. INITIALIZE THE TOUR ---
+            setNode(currentNodeId);
+
+        });
+    </script>
+</body>
+</html>

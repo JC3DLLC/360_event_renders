@@ -136,24 +136,29 @@
             // --- 1. DEFINE VIDEO VERSIONS & DETECT DEVICE ---
             const isMobile = /Mobi|Android/i.test(navigator.userAgent);
             
-            const videoUrlHighRes = 'https://player.vimeo.com/progressive_redirect/playback/1092480650/rendition/4320p/file.mp4?loc=external&signature=36788af97f8d6a9aa44eb7fbb4545f74c4c7897703cb1decde9cbe84c98986c6';
-            const videoUrlMobile = 'https://player.vimeo.com/progressive_redirect/playback/1092480650/rendition/1080p/file.mp4?loc=external&signature=0bc69c6e8bf99dcb70cefa5c025d7a7bb088b4a08f4e0f54f3bc253462e1d929';
+            const video1_highRes = 'https://player.vimeo.com/progressive_redirect/playback/1092480650/rendition/4320p/file.mp4?loc=external&signature=36788af97f8d6a9aa44eb7fbb4545f74c4c7897703cb1decde9cbe84c98986c6';
+            const video1_mobile = 'https://player.vimeo.com/progressive_redirect/playback/1092480650/rendition/1080p/file.mp4?loc=external&signature=0bc69c6e8bf99dcb70cefa5c025d7a7bb088b4a08f4e0f54f3bc253462e1d929';
+            
+            const video2_highRes = 'https://player.vimeo.com/progressive_redirect/playback/1092509700/rendition/4320p/file.mp4?loc=external&signature=919e8fdd06618258cd894278a6777bfe0310def1f5e80acc4e7a4babd0555e6a';
+            const video2_mobile = 'https://player.vimeo.com/progressive_redirect/playback/1092509700/rendition/1080p/file.mp4?loc=external&signature=8473978da31bb7508f558733b97704c24a8cff19b5cbd57448d4f0df162e4f86';
 
             // --- 2. DEFINE YOUR TOUR SCENES HERE ---
             const nodes = {
                 view1: {
                     id: 'view1',
                     panorama: {
-                        source: isMobile ? videoUrlMobile : videoUrlHighRes,
+                        source: isMobile ? video1_mobile : video1_highRes,
                     },
                     name: 'View 1 (Video)',
                     adapter: PhotoSphereViewer.EquirectangularVideoAdapter,
                 },
                 view2: {
                     id: 'view2',
-                    panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v01_0001.jpg',
-                    name: 'View 2',
-                    adapter: PhotoSphereViewer.EquirectangularAdapter,
+                    panorama: {
+                        source: isMobile ? video2_mobile : video2_highRes,
+                    },
+                    name: 'View 2 (Video)',
+                    adapter: PhotoSphereViewer.EquirectangularVideoAdapter,
                 },
                 view3: {
                     id: 'view3',
@@ -181,10 +186,12 @@
                 },
             };
             
-            let viewer = null; // Will hold the viewer instance
+            let viewer; // Will hold the viewer instance
             let tourStarted = false;
             const startOverlay = document.getElementById('start-overlay');
             
+            // --- 3. CORE FUNCTIONS ---
+
             /**
              * Builds the navigation bar configuration based on the active node.
              * @param {string} activeNodeId
@@ -217,9 +224,8 @@
             }
             
             /**
-             * (FIX) Combined the setNode and createViewer functions into one.
-             * This ensures that the viewer is always destroyed and recreated with the
-             * correct adapter and plugins for the specific media type.
+             * Destroys the old viewer and creates a new one for the selected node.
+             * This ensures the correct plugins and adapters are used for each media type.
              * @param {string} nodeId
              */
             function setNode(nodeId) {
@@ -229,9 +235,6 @@
 
                 const node = nodes[nodeId];
                 const isVideo = node.adapter === PhotoSphereViewer.EquirectangularVideoAdapter;
-                
-                // (FIX) Pass the correct panorama object or string directly
-                const panoramaConfig = node.panorama;
                 
                 const plugins = [];
                 if (isVideo) {
@@ -246,7 +249,7 @@
                 viewer = new PhotoSphereViewer.Viewer({
                     container: document.querySelector('#viewer'),
                     adapter: node.adapter,
-                    panorama: panoramaConfig,
+                    panorama: node.panorama,
                     caption: node.name,
                     loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading...',
                     touchmoveTwoFingers: true,
@@ -257,12 +260,12 @@
 
                 viewer.once('ready', () => {
                     if (isVideo && tourStarted) {
-                        // The plugin's autoplay will handle this after user interaction
+                        // The plugin's autoplay config handles playback
                     }
                 });
 
                  viewer.on('click', () => {
-                    if (isVideo) {
+                    if (isVideo && viewer.getPlugin(PhotoSphereViewer.VideoPlugin)) {
                        viewer.getPlugin(PhotoSphereViewer.VideoPlugin).playPause();
                     }
                 });
@@ -282,4 +285,4 @@
 </body>
 </html>
 ```
-Waxaan sameeyay isbedel. Waxaan xaliyay laba arimood: marka hore, cilad ka hortageysay in laga badalo muuqaal video ah oo loo wareego sawir, anigoo hubinaya in la isticmaalo adaporka saxda ah ee nooc kasta oo ka kooban. Marka labaad, waxaan meesha ka saaray amarkii `play()` ee tooska ahaa kaasoo sababayay cilad is-ciyaarid, anigoo u ogolaanaya pluginka video-ga inuu si sax ah u maareeyo ciyaarista sida ay qabaan siyaasadaha biraawsar
+Anigoo raacaya tilmaamahaaga. Waxaan ku daray fiidiyowgaaga labaad dalxiiska, anigoo isticmaalaya xiriiriyeyaasha aad bixis

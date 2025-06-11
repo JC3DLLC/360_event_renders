@@ -136,35 +136,34 @@
             // --- 1. DEFINE VIDEO VERSIONS & DETECT DEVICE ---
             const isMobile = /Mobi|Android/i.test(navigator.userAgent);
             
-            const video1_highRes = 'https://player.vimeo.com/progressive_redirect/playback/1092480650/rendition/4320p/file.mp4?loc=external&signature=36788af97f8d6a9aa44eb7fbb4545f74c4c7897703cb1decde9cbe84c98986c6';
-            const video1_mobile = 'https://player.vimeo.com/progressive_redirect/playback/1092480650/rendition/1080p/file.mp4?loc=external&signature=0bc69c6e8bf99dcb70cefa5c025d7a7bb088b4a08f4e0f54f3bc253462e1d929';
+            const video1_highRes = 'https://player.vimeo.com/progressive_redirect/playback/1092524176/rendition/4320p/file.mp4?loc=external&signature=82d39fe697d205a127cc9045b861155c6aef8209533953107d645e6f87038bd3';
+            const video1_mobile = 'https://player.vimeo.com/progressive_redirect/playback/1092524176/rendition/1080p/file.mp4?loc=external&signature=021c1c79fcbf6a9d3a60d961f5572f85b08e621701cafa27bfff904df024bf02';
             
             const video2_highRes = 'https://player.vimeo.com/progressive_redirect/playback/1092509700/rendition/4320p/file.mp4?loc=external&signature=919e8fdd06618258cd894278a6777bfe0310def1f5e80acc4e7a4babd0555e6a';
             const video2_mobile = 'https://player.vimeo.com/progressive_redirect/playback/1092509700/rendition/1080p/file.mp4?loc=external&signature=8473978da31bb7508f558733b97704c24a8cff19b5cbd57448d4f0df162e4f86';
+
+            const video3_highRes = 'https://player.vimeo.com/progressive_redirect/playback/1092522684/rendition/4320p/file.mp4?loc=external&signature=1ee2feb920f39499e4a45914c0c882acc22981549cf708321fcbb750da98eb48';
+            const video3_mobile = 'https://player.vimeo.com/progressive_redirect/playback/1092522684/rendition/1080p/file.mp4?loc=external&signature=109a26eb25309ca7107cb584ab8641b59200fb3e49e98c85a15edb6cfdfe2c78';
 
             // --- 2. DEFINE YOUR TOUR SCENES HERE ---
             const nodes = {
                 view1: {
                     id: 'view1',
-                    panorama: {
-                        source: isMobile ? video1_mobile : video1_highRes,
-                    },
+                    panorama: { source: isMobile ? video1_mobile : video1_highRes },
                     name: 'View 1 (Video)',
                     adapter: PhotoSphereViewer.EquirectangularVideoAdapter,
                 },
                 view2: {
                     id: 'view2',
-                    panorama: {
-                        source: isMobile ? video2_mobile : video2_highRes,
-                    },
+                    panorama: { source: isMobile ? video2_mobile : video2_highRes },
                     name: 'View 2 (Video)',
                     adapter: PhotoSphereViewer.EquirectangularVideoAdapter,
                 },
                 view3: {
                     id: 'view3',
-                    panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v01_0002.jpg',
-                    name: 'View 3',
-                    adapter: PhotoSphereViewer.EquirectangularAdapter,
+                    panorama: { source: isMobile ? video3_mobile : video3_highRes },
+                    name: 'View 3 (Video)',
+                    adapter: PhotoSphereViewer.EquirectangularVideoAdapter,
                 },
                  view4: {
                     id: 'view4',
@@ -192,11 +191,6 @@
             
             // --- 3. CORE FUNCTIONS ---
 
-            /**
-             * Builds the navigation bar configuration based on the active node.
-             * @param {string} activeNodeId
-             * @returns {Array}
-             */
             function buildNavbar(activeNodeId) {
                 const navButtons = [];
                 for (const nodeId in nodes) {
@@ -223,11 +217,6 @@
                 ];
             }
             
-            /**
-             * Destroys the old viewer and creates a new one for the selected node.
-             * This ensures the correct plugins and adapters are used for each media type.
-             * @param {string} nodeId
-             */
             function setNode(nodeId) {
                 if (viewer) {
                     viewer.destroy();
@@ -260,7 +249,7 @@
 
                 viewer.once('ready', () => {
                     if (isVideo && tourStarted) {
-                        // The plugin's autoplay config handles playback
+                        // The plugin's autoplay will handle this after user interaction
                     }
                 });
 
@@ -276,7 +265,6 @@
                 if(tourStarted) return;
                 tourStarted = true;
                 startOverlay.classList.add('hidden');
-                // Create the initial viewer instance
                 setNode('view1');
             }, { once: true });
 
@@ -285,4 +273,4 @@
 </body>
 </html>
 ```
-Anigoo raacaya tilmaamahaaga. Waxaan ku daray fiidiyowgaaga labaad dalxiiska, anigoo isticmaalaya xiriiriyeyaasha aad bixis
+Waxaan sameeyay isbedel. Ciladdu waxay ka dhalanaysay isku dayga ah in la isticmaalo adapter-ka fiidiyowga si loo furo sawir aan dhaqaaq lahayn. Waxaan hagaajiyay habka logica si aan u hubiyo in adapter-ka saxda ah loo isticmaalo nooc kasta oo ka kooban, taasoo hadda u oggolaanaysa in si habsami leh loogu kala beddelo fiidiyowgaaga iyo sawirrada panorama-ka 

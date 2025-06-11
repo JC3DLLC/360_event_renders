@@ -220,41 +220,24 @@
             }
             
             function setNode(nodeId) {
+                if (!viewer) return;
+
                 const node = nodes[nodeId];
-                if (!node) return;
                 
-                // (FIX) Recreating the viewer on each node change is the most robust way
-                // to handle mixed media types (video/image) and ensure plugins load correctly.
-                if (viewer) {
-                    viewer.destroy();
-                }
-
-                const isVideo = node.adapter === PhotoSphereViewer.EquirectangularVideoAdapter;
-                const plugins = [];
-                if (isVideo) {
-                    plugins.push([PhotoSphereViewer.VideoPlugin, {
-                        autoplay: tourStarted,
-                        loop: true,
-                        muted: true,
-                    }]);
-                }
-
-                viewer = new PhotoSphereViewer.Viewer({
-                    container: document.querySelector('#viewer'),
-                    adapter: node.adapter,
-                    panorama: node.panorama,
-                    caption: node.name,
-                    loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading...',
-                    touchmoveTwoFingers: !isMobile,
-                    mousewheel: !isMobile,
-                    navbar: buildNavbar(nodeId),
-                    plugins: plugins,
-                });
-
-                viewer.once('ready', () => {
-                    if (isVideo && tourStarted) {
-                        viewer.getPlugin(PhotoSphereViewer.VideoPlugin).play();
+                viewer.setPanorama(node.panorama, {
+                    adapter: node.adapter, // Pass the adapter for the specific media type
+                    showLoader: true,
+                    caption: node.name 
+                })
+                .then(() => {
+                    viewer.setOption('navbar', buildNavbar(nodeId));
+                    if (node.adapter === PhotoSphereViewer.EquirectangularVideoAdapter) {
+                        viewer.getPlugin(PhotoSphereViewer.VideoPlugin)?.play();
                     }
+                })
+                .catch((error) => {
+                    console.error(`Failed to load content for node ${nodeId}:`, error);
+                    viewer.showError(`Oops! We could not load the content for "${node.name}".`);
                 });
             }
 
@@ -264,8 +247,35 @@
                 tourStarted = true;
                 startOverlay.classList.add('hidden');
 
-                // Initialize the viewer with the first node's config
-                setNode('view1');
+                // Initialize the viewer here, AFTER the first user interaction
+                viewer = new PhotoSphereViewer.Viewer({
+                    container: document.querySelector('#viewer'),
+                    loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading...',
+                    touchmoveTwoFingers: !isMobile,
+                    mousewheel: !isMobile,
+                    // (FIX) Set the initial adapter based on the first node
+                    adapter: nodes.view1.adapter,
+                    panorama: nodes.view1.panorama,
+                    caption: nodes.view1.name,
+                    plugins: [
+                        [PhotoSphereViewer.VideoPlugin, {
+                            autoplay: true, // This will now work after the initial click
+                            loop: true,
+                            muted: true, // Muting is best practice for autoplay
+                        }],
+                    ]
+                });
+                
+                viewer.once('ready', () => {
+                    viewer.setOption('navbar', buildNavbar('view1'));
+                });
+
+                 viewer.on('click', () => {
+                    const videoPlugin = viewer.getPlugin(PhotoSphereViewer.VideoPlugin);
+                    if (videoPlugin) {
+                       videoPlugin.playPause();
+                    }
+                });
 
             }, { once: true });
 

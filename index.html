@@ -136,7 +136,7 @@
         document.addEventListener('DOMContentLoaded', function() {
 
             // --- 1. DEFINE VIDEO VERSIONS & DETECT DEVICE ---
-            const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+            const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
             
             const video1_highRes = 'https://player.vimeo.com/progressive_redirect/playback/1092524176/rendition/4320p/file.mp4?loc=external&signature=82d39fe697d205a127cc9045b861155c6aef8209533953107d645e6f87038bd3';
             const video1_mobile = 'https://player.vimeo.com/progressive_redirect/playback/1092524176/rendition/1080p/file.mp4?loc=external&signature=021c1c79fcbf6a9d3a60d961f5572f85b08e621701cafa27bfff904df024bf02';
@@ -189,6 +189,7 @@
             
             let viewer; // Will hold the viewer instance
             let tourStarted = false;
+            let currentNodeId = 'view1';
             const startOverlay = document.getElementById('start-overlay');
             
             // --- 3. CORE FUNCTIONS ---
@@ -196,14 +197,10 @@
             function buildNavbar(activeNodeId) {
                 const navButtons = [];
                 for (const nodeId in nodes) {
-                    const buttonClasses = ['nav-dot-button'];
-                    if (nodeId === activeNodeId) buttonClasses.push('active');
-
                     navButtons.push({
                         id: `nav-dot-to-${nodeId}`,
-                        content: `<div class="nav-dot"></div>`,
+                        content: `<div class="nav-dot ${nodeId === activeNodeId ? 'active' : ''}"></div>`,
                         title: `Go to ${nodes[nodeId].name}`,
-                        className: buttonClasses.join(' '), 
                         onClick: () => setNode(nodeId),
                     });
                 }
@@ -219,25 +216,45 @@
                 ];
             }
             
+            /**
+             * (FIX) This function now handles destroying and creating the viewer.
+             * This is the most robust way to switch between different media types (image/video).
+             * @param {string} nodeId
+             */
             function setNode(nodeId) {
-                if (!viewer) return;
+                if (viewer) {
+                    viewer.destroy();
+                }
 
+                currentNodeId = nodeId;
                 const node = nodes[nodeId];
+                const isVideo = node.adapter === PhotoSphereViewer.EquirectangularVideoAdapter;
                 
-                viewer.setPanorama(node.panorama, {
-                    adapter: node.adapter, // Pass the adapter for the specific media type
-                    showLoader: true,
-                    caption: node.name 
-                })
-                .then(() => {
-                    viewer.setOption('navbar', buildNavbar(nodeId));
-                    if (node.adapter === PhotoSphereViewer.EquirectangularVideoAdapter) {
-                        viewer.getPlugin(PhotoSphereViewer.VideoPlugin)?.play();
+                const plugins = [];
+                if (isVideo) {
+                    plugins.push([PhotoSphereViewer.VideoPlugin, {
+                        autoplay: tourStarted,
+                        loop: true,
+                        muted: true,
+                    }]);
+                }
+
+                viewer = new PhotoSphereViewer.Viewer({
+                    container: document.querySelector('#viewer'),
+                    adapter: node.adapter,
+                    panorama: node.panorama,
+                    caption: node.name,
+                    loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading...',
+                    touchmoveTwoFingers: !isMobile,
+                    mousewheel: !isMobile,
+                    navbar: buildNavbar(nodeId),
+                    plugins: plugins,
+                });
+
+                viewer.once('ready', () => {
+                    if (isVideo && tourStarted) {
+                        viewer.getPlugin(PhotoSphereViewer.VideoPlugin).play();
                     }
-                })
-                .catch((error) => {
-                    console.error(`Failed to load content for node ${nodeId}:`, error);
-                    viewer.showError(`Oops! We could not load the content for "${node.name}".`);
                 });
             }
 
@@ -246,37 +263,7 @@
                 if (tourStarted) return;
                 tourStarted = true;
                 startOverlay.classList.add('hidden');
-
-                // Initialize the viewer here, AFTER the first user interaction
-                viewer = new PhotoSphereViewer.Viewer({
-                    container: document.querySelector('#viewer'),
-                    loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading...',
-                    touchmoveTwoFingers: !isMobile,
-                    mousewheel: !isMobile,
-                    // (FIX) Set the initial adapter based on the first node
-                    adapter: nodes.view1.adapter,
-                    panorama: nodes.view1.panorama,
-                    caption: nodes.view1.name,
-                    plugins: [
-                        [PhotoSphereViewer.VideoPlugin, {
-                            autoplay: true, // This will now work after the initial click
-                            loop: true,
-                            muted: true, // Muting is best practice for autoplay
-                        }],
-                    ]
-                });
-                
-                viewer.once('ready', () => {
-                    viewer.setOption('navbar', buildNavbar('view1'));
-                });
-
-                 viewer.on('click', () => {
-                    const videoPlugin = viewer.getPlugin(PhotoSphereViewer.VideoPlugin);
-                    if (videoPlugin) {
-                       videoPlugin.playPause();
-                    }
-                });
-
+                setNode(currentNodeId);
             }, { once: true });
 
         });

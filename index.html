@@ -133,12 +133,19 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
 
-            // --- 1. DEFINE YOUR TOUR SCENES HERE ---
+            // --- 1. DEFINE VIDEO VERSIONS & DETECT DEVICE ---
+            const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+            
+            const videoUrlHighRes = 'https://player.vimeo.com/progressive_redirect/playback/1092480650/rendition/4320p/file.mp4?loc=external&signature=36788af97f8d6a9aa44eb7fbb4545f74c4c7897703cb1decde9cbe84c98986c6';
+            const videoUrlMobile = 'https://player.vimeo.com/progressive_redirect/playback/1092480650/rendition/1080p/file.mp4?loc=external&signature=0bc69c6e8bf99dcb70cefa5c025d7a7bb088b4a08f4e0f54f3bc253462e1d929';
+
+            // --- 2. DEFINE YOUR TOUR SCENES HERE ---
             const nodes = {
                 view1: {
                     id: 'view1',
                     panorama: {
-                        source: 'https://player.vimeo.com/progressive_redirect/playback/1092480650/rendition/4320p/file.mp4?loc=external&signature=36788af97f8d6a9aa44eb7fbb4545f74c4c7897703cb1decde9cbe84c98986c6'
+                        // Use the appropriate video URL based on device type
+                        source: isMobile ? videoUrlMobile : videoUrlHighRes,
                     },
                     name: 'View 1 (Video)',
                     adapter: PhotoSphereViewer.EquirectangularVideoAdapter,

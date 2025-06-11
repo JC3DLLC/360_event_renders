@@ -218,53 +218,52 @@
             }
             
             function setNode(nodeId) {
-                if (viewer) {
-                    viewer.destroy();
-                }
+                if (!viewer) return;
 
                 const node = nodes[nodeId];
-                const isVideo = node.adapter === PhotoSphereViewer.EquirectangularVideoAdapter;
                 
-                const plugins = [];
-                if (isVideo) {
-                    plugins.push([PhotoSphereViewer.VideoPlugin, {
-                        progressbar: true,
-                        autoplay: tourStarted,
-                        loop: true,
-                        muted: true,
-                    }]);
-                }
-
-                viewer = new PhotoSphereViewer.Viewer({
-                    container: document.querySelector('#viewer'),
+                viewer.setPanorama(node.panorama, {
                     adapter: node.adapter,
-                    panorama: node.panorama,
-                    caption: node.name,
-                    loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading...',
-                    touchmoveTwoFingers: true,
-                    mousewheelCtrlKey: true,
-                    navbar: buildNavbar(nodeId),
-                    plugins: plugins,
-                });
-
-                viewer.once('ready', () => {
-                    if (isVideo && tourStarted) {
-                        // The plugin's autoplay will handle this after user interaction
+                    showLoader: true,
+                    caption: node.name 
+                })
+                .then(() => {
+                    viewer.setOption('navbar', buildNavbar(nodeId));
+                    if (node.adapter === PhotoSphereViewer.EquirectangularVideoAdapter) {
+                        // The plugin is configured to autoplay, but we ensure it plays.
+                        viewer.getPlugin(PhotoSphereViewer.VideoPlugin).play();
                     }
-                });
-
-                 viewer.on('click', () => {
-                    if (isVideo && viewer.getPlugin(PhotoSphereViewer.VideoPlugin)) {
-                       viewer.getPlugin(PhotoSphereViewer.VideoPlugin).playPause();
-                    }
+                })
+                .catch((error) => {
+                    console.error(`Failed to load content for node ${nodeId}:`, error);
+                    viewer.showError(`Oops! We could not load the content for "${node.name}".`);
                 });
             }
 
             // --- INITIALIZATION ---
             startOverlay.addEventListener('click', () => {
-                if(tourStarted) return;
+                if (tourStarted) return;
                 tourStarted = true;
                 startOverlay.classList.add('hidden');
+
+                // Initialize the viewer here, AFTER the first user interaction
+                viewer = new PhotoSphereViewer.Viewer({
+                    container: document.querySelector('#viewer'),
+                    loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading...',
+                    touchmoveTwoFingers: true,
+                    mousewheelCtrlKey: true,
+                    // (FIX) Set the initial adapter based on the first node
+                    adapter: nodes.view1.adapter,
+                    plugins: [
+                        [PhotoSphereViewer.VideoPlugin, {
+                            autoplay: true, // This will now work after the initial click
+                            loop: true,
+                            muted: true, // Muting is best practice for autoplay
+                        }],
+                    ]
+                });
+
+                // Now that the viewer exists, load the first node
                 setNode('view1');
             }, { once: true });
 
@@ -272,5 +271,3 @@
     </script>
 </body>
 </html>
-```
-Waxaan sameeyay isbedel. Ciladdu waxay ka dhalanaysay isku dayga ah in la isticmaalo adapter-ka fiidiyowga si loo furo sawir aan dhaqaaq lahayn. Waxaan hagaajiyay habka logica si aan u hubiyo in adapter-ka saxda ah loo isticmaalo nooc kasta oo ka kooban, taasoo hadda u oggolaanaysa in si habsami leh loogu kala beddelo fiidiyowgaaga iyo sawirrada panorama-ka 

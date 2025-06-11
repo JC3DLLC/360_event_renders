@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>360 Virtual Image Tour</title>
+    <title>360 Virtual Tour</title>
 
     <!-- Photo Sphere Viewer CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/photo-sphere-viewer.min.css" />
+    <!-- Video Plugin CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/plugins/video.min.css">
     
     <!-- uevent is a required dependency for Photo Sphere Viewer v4 -->
     <script src="https://cdn.jsdelivr.net/npm/uevent@2/browser.js"></script>
@@ -16,9 +18,13 @@
     
     <!-- Photo Sphere Viewer JS -->
     <script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/photo-sphere-viewer.min.js"></script>
+
+    <!-- Adapters for different media types -->
+    <script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/adapters/equirectangular.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/adapters/equirectangular-video.min.js"></script>
     
-    <!-- Markers Plugin is not needed anymore but we'll keep the script tag in case you want to re-add them -->
-    <script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/plugins/markers.min.js"></script>
+    <!-- Video Plugin JS -->
+    <script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/plugins/video.min.js"></script>
 
     <style>
         html, body {
@@ -64,123 +70,195 @@
             transform: scale(1.2);
         }
 
+        /* Style for the "Click to Start" overlay */
+        #start-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: opacity 0.5s;
+        }
+
+        #start-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #start-button {
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        #start-button-icon {
+            color: white;
+            font-size: 50px;
+            margin-left: 10px;
+        }
+
+        #start-text {
+            color: white;
+            font-size: 24px;
+            margin-top: 20px;
+        }
+
     </style>
 </head>
 <body>
 
     <div id="viewer-container">
         <div id="viewer"></div>
+        <!-- Overlay for starting the tour to handle autoplay restrictions -->
+        <div id="start-overlay">
+            <div id="start-button">
+                <div id="start-button-icon">▶</div>
+            </div>
+            <div id="start-text">Click to Start</div>
+        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
 
-            // --- 1. DEFINE YOUR TOUR IMAGES (SCENES) HERE ---
-            // Using your image URLs from the public GitHub repository.
+            // --- 1. DEFINE YOUR TOUR SCENES HERE ---
             const nodes = {
                 view1: {
                     id: 'view1',
-                    panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v02_0000.jpg',
-                    name: 'View 1',
+                    panorama: {
+                        source: 'https://player.vimeo.com/progressive_redirect/playback/1092480650/rendition/4320p/file.mp4?loc=external&signature=36788af97f8d6a9aa44eb7fbb4545f74c4c7897703cb1decde9cbe84c98986c6'
+                    },
+                    name: 'View 1 (Video)',
+                    adapter: PhotoSphereViewer.EquirectangularVideoAdapter,
                 },
                 view2: {
                     id: 'view2',
                     panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v01_0001.jpg',
                     name: 'View 2',
+                    adapter: PhotoSphereViewer.EquirectangularAdapter,
                 },
                 view3: {
                     id: 'view3',
                     panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v01_0002.jpg',
                     name: 'View 3',
+                    adapter: PhotoSphereViewer.EquirectangularAdapter,
                 },
                  view4: {
                     id: 'view4',
                     panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v01_0003.jpg',
                     name: 'View 4',
+                    adapter: PhotoSphereViewer.EquirectangularAdapter,
                 },
                  view5: {
                     id: 'view5',
                     panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v01_0004.jpg',
                     name: 'View 5',
+                    adapter: PhotoSphereViewer.EquirectangularAdapter,
                 },
                  view6: {
                     id: 'view6',
                     panorama: 'https://raw.githubusercontent.com/JC3DLLC/360_event_renders/main/hamden_green_hq_v01_0005.jpg',
                     name: 'View 6',
+                    adapter: PhotoSphereViewer.EquirectangularAdapter,
                 },
             };
             
-            let currentNodeId = 'view1'; // The starting node
+            let viewer = null; // Will hold the viewer instance
+            let tourStarted = false;
+            const startOverlay = document.getElementById('start-overlay');
             
-            // --- 2. INITIALIZE THE VIEWER ---
-            const viewer = new PhotoSphereViewer.Viewer({
-                container: document.querySelector('#viewer'),
-                loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading%20Image...',
-                touchmoveTwoFingers: true,
-                mousewheelCtrlKey: true,
-                navbar: [], // Navbar is generated dynamically
-            });
-
-            // --- 3. CORE FUNCTIONS ---
-
             /**
-             * Rebuilds the navbar with simple dots for navigation.
-             * @param {string} activeNodeId The currently visible node.
+             * Builds the navigation bar configuration based on the active node.
+             * @param {string} activeNodeId
+             * @returns {Array}
              */
-            function updateNavbar(activeNodeId) {
+            function buildNavbar(activeNodeId) {
                 const navButtons = [];
-
-                // Create a dot button for each node
                 for (const nodeId in nodes) {
                     const buttonClasses = ['nav-dot-button'];
-                    if (nodeId === activeNodeId) {
-                        buttonClasses.push('active');
-                    }
+                    if (nodeId === activeNodeId) buttonClasses.push('active');
 
-                    const button = {
+                    navButtons.push({
                         id: `nav-dot-to-${nodeId}`,
                         content: `<div class="nav-dot"></div>`,
                         title: `Go to ${nodes[nodeId].name}`,
                         className: buttonClasses.join(' '), 
-                        onClick: () => setNode(nodeId),
-                    };
-                    navButtons.push(button);
+                        onClick: () => createViewer(nodeId),
+                    });
                 }
-
-                // Define the full navbar configuration
-                const newNavbar = [
-                    'zoom',
-                    'caption',
-                    ...navButtons, // Add the dynamic navigation dots
-                    'fullscreen', // This button will work once the file is hosted on a live website.
-                ];
                 
-                // Update the viewer's navbar
-                viewer.setOption('navbar', newNavbar);
+                const isVideo = nodes[activeNodeId].adapter === PhotoSphereViewer.EquirectangularVideoAdapter;
+
+                return [
+                    'zoom',
+                     ...(isVideo ? ['videoPlay'] : []),
+                    'caption',
+                    ...navButtons,
+                    'fullscreen',
+                ];
             }
             
-            function setNode(nodeId) {
-                const node = nodes[nodeId];
-                if (!node) return;
-                
-                currentNodeId = nodeId;
+            /**
+             * Destroys the old viewer and creates a new one for the selected node.
+             * This is necessary when switching between media types (image/video).
+             * @param {string} nodeId
+             */
+            function createViewer(nodeId) {
+                if (viewer) {
+                    viewer.destroy();
+                }
 
-                viewer.setPanorama(node.panorama, { 
-                    showLoader: true,
-                    caption: node.name 
-                })
-                .then(() => {
-                    // Update the navbar to highlight the correct dot
-                    updateNavbar(nodeId);
-                })
-                .catch((error) => {
-                    console.error(`Failed to load panorama for node ${nodeId}:`, error);
-                    viewer.showError(`Oops! We could not load the image for "${node.name}". Please check the URL.`);
+                const node = nodes[nodeId];
+                const isVideo = node.adapter === PhotoSphereViewer.EquirectangularVideoAdapter;
+
+                const plugins = [];
+                if (isVideo) {
+                    plugins.push([PhotoSphereViewer.VideoPlugin, {
+                        progressbar: true,
+                        autoplay: tourStarted,
+                        loop: true,
+                        muted: true,
+                    }]);
+                }
+
+                viewer = new PhotoSphereViewer.Viewer({
+                    container: document.querySelector('#viewer'),
+                    adapter: node.adapter,
+                    panorama: node.panorama,
+                    caption: node.name,
+                    loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading...',
+                    touchmoveTwoFingers: true,
+                    mousewheelCtrlKey: true,
+                    navbar: buildNavbar(nodeId),
+                    plugins: plugins,
+                });
+
+                viewer.once('ready', () => {
+                    if (isVideo && tourStarted) {
+                        viewer.getPlugin(PhotoSphereViewer.VideoPlugin).play();
+                    }
                 });
             }
 
-            // --- 4. INITIALIZE THE TOUR ---
-            setNode(currentNodeId);
+            // --- INITIALIZATION ---
+            startOverlay.addEventListener('click', () => {
+                if(tourStarted) return;
+                tourStarted = true;
+                startOverlay.classList.add('hidden');
+                createViewer('view1');
+            }, { once: true });
 
         });
     </script>

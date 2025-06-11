@@ -85,6 +85,7 @@
             align-items: center;
             cursor: pointer;
             transition: opacity 0.5s;
+            text-align: center;
         }
 
         #start-overlay.hidden {
@@ -113,6 +114,7 @@
             color: white;
             font-size: 24px;
             margin-top: 20px;
+            line-height: 1.4;
         }
 
     </style>
@@ -126,7 +128,7 @@
             <div id="start-button">
                 <div id="start-button-icon">▶</div>
             </div>
-            <div id="start-text">JC 3D, LLC 360° Event Render</div>
+            <div id="start-text">JC 3D, LLC<br>360° Event Render</div>
         </div>
     </div>
 
@@ -230,7 +232,6 @@
                 .then(() => {
                     viewer.setOption('navbar', buildNavbar(nodeId));
                     if (node.adapter === PhotoSphereViewer.EquirectangularVideoAdapter) {
-                        // The plugin is configured to autoplay, but we ensure it plays.
                         viewer.getPlugin(PhotoSphereViewer.VideoPlugin).play();
                     }
                 })
@@ -250,15 +251,15 @@
                 viewer = new PhotoSphereViewer.Viewer({
                     container: document.querySelector('#viewer'),
                     loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading...',
-                    touchmoveTwoFingers: true,
-                    mousewheelCtrlKey: true,
-                    // (FIX) Set the initial adapter based on the first node
+                    // (FIX) Set interaction based on device type
+                    touchmoveTwoFingers: !isMobile,
+                    mousewheel: !isMobile,
                     adapter: nodes.view1.adapter,
                     plugins: [
                         [PhotoSphereViewer.VideoPlugin, {
-                            autoplay: true, // This will now work after the initial click
+                            autoplay: true,
                             loop: true,
-                            muted: true, // Muting is best practice for autoplay
+                            muted: true,
                         }],
                     ]
                 });

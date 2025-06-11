@@ -220,24 +220,41 @@
             }
             
             function setNode(nodeId) {
-                if (!viewer) return;
-
                 const node = nodes[nodeId];
+                if (!node) return;
                 
-                viewer.setPanorama(node.panorama, {
+                // (FIX) Recreating the viewer on each node change is the most robust way
+                // to handle mixed media types (video/image) and ensure plugins load correctly.
+                if (viewer) {
+                    viewer.destroy();
+                }
+
+                const isVideo = node.adapter === PhotoSphereViewer.EquirectangularVideoAdapter;
+                const plugins = [];
+                if (isVideo) {
+                    plugins.push([PhotoSphereViewer.VideoPlugin, {
+                        autoplay: tourStarted,
+                        loop: true,
+                        muted: true,
+                    }]);
+                }
+
+                viewer = new PhotoSphereViewer.Viewer({
+                    container: document.querySelector('#viewer'),
                     adapter: node.adapter,
-                    showLoader: true,
-                    caption: node.name 
-                })
-                .then(() => {
-                    viewer.setOption('navbar', buildNavbar(nodeId));
-                    if (node.adapter === PhotoSphereViewer.EquirectangularVideoAdapter) {
+                    panorama: node.panorama,
+                    caption: node.name,
+                    loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading...',
+                    touchmoveTwoFingers: !isMobile,
+                    mousewheel: !isMobile,
+                    navbar: buildNavbar(nodeId),
+                    plugins: plugins,
+                });
+
+                viewer.once('ready', () => {
+                    if (isVideo && tourStarted) {
                         viewer.getPlugin(PhotoSphereViewer.VideoPlugin).play();
                     }
-                })
-                .catch((error) => {
-                    console.error(`Failed to load content for node ${nodeId}:`, error);
-                    viewer.showError(`Oops! We could not load the content for "${node.name}".`);
                 });
             }
 
@@ -247,25 +264,9 @@
                 tourStarted = true;
                 startOverlay.classList.add('hidden');
 
-                // Initialize the viewer here, AFTER the first user interaction
-                viewer = new PhotoSphereViewer.Viewer({
-                    container: document.querySelector('#viewer'),
-                    loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading...',
-                    // (FIX) Set interaction based on device type
-                    touchmoveTwoFingers: !isMobile,
-                    mousewheel: !isMobile,
-                    adapter: nodes.view1.adapter,
-                    plugins: [
-                        [PhotoSphereViewer.VideoPlugin, {
-                            autoplay: true,
-                            loop: true,
-                            muted: true,
-                        }],
-                    ]
-                });
-
-                // Now that the viewer exists, load the first node
+                // Initialize the viewer with the first node's config
                 setNode('view1');
+
             }, { once: true });
 
         });

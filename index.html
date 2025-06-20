@@ -20,6 +20,7 @@
     <script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/photo-sphere-viewer.min.js"></script>
 
     <!-- Adapters for different media types -->
+    <script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/adapters/equirectangular.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/adapters/equirectangular-video.min.js"></script>
     
     <!-- Video Plugin JS -->
@@ -47,43 +48,27 @@
             height: 100%;
         }
 
-        /* Softimage-style button design */
-        .psv-button.softimage-button {
-            background: linear-gradient(135deg, #888, #555);
-            color: #E0E0E0;
-            border: 1px solid #444;
-            border-radius: 6px; /* More rounded corners */
-            box-shadow: 
-                inset 1px 1px 1px rgba(255, 255, 255, 0.2),
-                inset -1px -1px 1px rgba(0, 0, 0, 0.4),
-                1px 1px 2px rgba(0, 0, 0, 0.5);
-            text-shadow: 0 1px 1px rgba(0,0,0,0.5);
-            transition: all 0.1s ease-in-out;
-            width: auto !important;
-            min-width: 40px;
-            height: auto !important;
-            padding: 4px 10px; /* Shorter padding */
-            margin: 0 3px !important;
-            font-size: 13px;
-            font-weight: bold;
-            line-height: 1.2;
-        }
-        
-        .psv-button.softimage-button:hover {
-             background: linear-gradient(135deg, #999, #666);
-             color: #fff;
+        /* Style for the navigation dots in the navbar */
+        .psv-custom-button {
+            width: 20px !important;
+            height: 20px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* Active "pushed in" state */
-        .psv-button.softimage-button.active {
-            background: linear-gradient(135deg, #444, #666);
-            box-shadow: 
-                inset 2px 2px 3px rgba(0, 0, 0, 0.6);
-            color: #fff;
-            text-shadow: none;
-            transform: translateY(1px);
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transition: background-color 0.2s;
         }
-        
+
+        .psv-button.active .nav-dot {
+            background-color: white;
+            transform: scale(1.2);
+        }
 
         /* Style for the "Click to Start" overlay */
         #start-overlay {
@@ -143,12 +128,12 @@
             <div id="start-button">
                 <div id="start-button-icon">▶</div>
             </div>
-            <div id="start-text">Fri Jun 20 2025<br>Grand Ballroom</div>
+            <div id="start-text">Event Strategies Inc<br>Grand Ballroom</div>
         </div>
     </div>
 
     <script>
-        window.onload = function() {
+        document.addEventListener('DOMContentLoaded', function() {
 
             // --- 1. DEFINE VIDEO VERSIONS & DETECT DEVICE ---
             const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
@@ -170,14 +155,39 @@
 
             // --- 2. DEFINE YOUR TOUR SCENES HERE ---
             const nodes = {
-                view1: { panorama: { source: isMobile ? video1_mobile : video1_highRes } },
-                view2: { panorama: { source: isMobile ? video2_mobile : video2_highRes } },
-                view3: { panorama: { source: isMobile ? video3_mobile : video3_highRes } },
-                view4: { panorama: { source: isMobile ? video4_mobile : video4_highRes } },
-                view5: { panorama: { source: isMobile ? video5_mobile : video5_highRes } },
+                view1: {
+                    id: 'view1',
+                    panorama: { source: isMobile ? video1_mobile : video1_highRes },
+                    name: 'View 1',
+                    adapter: PhotoSphereViewer.EquirectangularVideoAdapter,
+                },
+                view2: {
+                    id: 'view2',
+                    panorama: { source: isMobile ? video2_mobile : video2_highRes },
+                    name: 'View 2',
+                    adapter: PhotoSphereViewer.EquirectangularVideoAdapter,
+                },
+                view3: {
+                    id: 'view3',
+                    panorama: { source: isMobile ? video3_mobile : video3_highRes },
+                    name: 'View 3',
+                    adapter: PhotoSphereViewer.EquirectangularVideoAdapter,
+                },
+                 view4: {
+                    id: 'view4',
+                    panorama: { source: isMobile ? video4_mobile : video4_highRes },
+                    name: 'View 4',
+                    adapter: PhotoSphereViewer.EquirectangularVideoAdapter,
+                },
+                 view5: {
+                    id: 'view5',
+                    panorama: { source: isMobile ? video5_mobile : video5_highRes },
+                    name: 'View 5',
+                    adapter: PhotoSphereViewer.EquirectangularVideoAdapter,
+                },
             };
             
-            let viewer;
+            let viewer; // Will hold the viewer instance
             let tourStarted = false;
             let currentNodeId = 'view1';
             const startOverlay = document.getElementById('start-overlay');
@@ -187,16 +197,11 @@
             function buildNavbar(activeNodeId) {
                 const navButtons = [];
                 Object.keys(nodes).forEach((nodeId, index) => {
-                    const buttonClasses = ['softimage-button'];
-                    if (nodeId === activeNodeId) {
-                        buttonClasses.push('active');
-                    }
-
                     navButtons.push({
-                        id: `nav-btn-to-${nodeId}`,
-                        content: String(index + 1).padStart(2, '0'),
+                        id: `nav-dot-to-${nodeId}`,
+                        content: `<div class="nav-dot ${nodeId === activeNodeId ? 'active' : ''}"></div>`,
                         title: `Go to View ${index + 1}`,
-                        className: buttonClasses.join(' '), 
+                        className: 'psv-custom-button',
                         onClick: () => setNode(nodeId),
                     });
                 });
@@ -219,16 +224,10 @@
 
                 viewer.setPanorama(node.panorama)
                     .then(() => {
-                        viewer.setOptions({
-                            caption: `View ${String(nodeIndex + 1).padStart(2, '0')}`,
-                            navbar: buildNavbar(nodeId),
-                        });
-                        if (tourStarted) {
-                            // (FIX) The plugin classes are properties of the main PhotoSphereViewer object
-                            const videoPlugin = viewer.getPlugin(PhotoSphereViewer.VideoPlugin);
-                            if (videoPlugin) {
-                                videoPlugin.play();
-                            }
+                        viewer.navbar.setButtons(buildNavbar(nodeId));
+                        viewer.setOption('caption', `View ${String(nodeIndex + 1).padStart(2, '0')}`);
+                        if(tourStarted) {
+                            viewer.getPlugin(PhotoSphereViewer.VideoPlugin).play();
                         }
                     })
                     .catch((err) => {
@@ -243,15 +242,16 @@
                 tourStarted = true;
                 startOverlay.classList.add('hidden');
 
-                // Create a single, persistent viewer instance.
                 viewer = new PhotoSphereViewer.Viewer({
                     container: document.querySelector('#viewer'),
                     adapter: PhotoSphereViewer.EquirectangularVideoAdapter,
+                    panorama: nodes[currentNodeId].panorama,
+                    caption: 'View 01',
                     loadingImg: 'https://placehold.co/200x100/111827/ffffff?text=Loading...',
                     touchmoveTwoFingers: !isMobile,
                     mousewheel: !isMobile,
+                    navbar: buildNavbar(currentNodeId),
                     plugins: [
-                        // (FIX) The plugin classes are properties of the main PhotoSphereViewer object
                         [PhotoSphereViewer.VideoPlugin, {
                             autoplay: true,
                             loop: true,
@@ -260,11 +260,9 @@
                     ]
                 });
                 
-                setNode(currentNodeId);
-
             }, { once: true });
 
-        };
+        });
     </script>
 </body>
 </html>
